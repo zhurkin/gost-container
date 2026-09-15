@@ -1,0 +1,50 @@
+FROM debian:%%DEBIAN_IMAGE%% AS fetch
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+ARG GOST_VERSION="%%GOST_VERSION%%"
+ARG GOST_OS="%%GOST_OS%%"
+ARG GOST_ARCH="%%GOST_ARCH%%"
+ARG GOST_SHA256="%%GOST_SHA256%%"
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    archive="gost_${GOST_VERSION}_${GOST_OS}_${GOST_ARCH}.tar.gz"; \
+    url="https://github.com/go-gost/gost/releases/download/v${GOST_VERSION}/${archive}"; \
+    curl -fL --retry 3 \
+        -o "/tmp/${archive}" \
+        "${url}"; \
+    echo "${GOST_SHA256}  /tmp/${archive}" | sha256sum -c -; \
+    mkdir -p /tmp/gost-extract /out; \
+    tar -xzf "/tmp/${archive}" -C /tmp/gost-extract; \
+    gost_bin="$(find /tmp/gost-extract -type f -name gost -print -quit)"; \
+    test -n "${gost_bin}"; \
+    install -m 0755 "${gost_bin}" /out/gost; \
+    /out/gost -V
+
+
+FROM debian:%%DEBIAN_IMAGE%%
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+LABEL org.opencontainers.image.source="https://github.com/zhurkin/gost-container"
+LABEL org.opencontainers.image.title="gost-container"
+LABEL org.opencontainers.image.description="Minimal container image for GOST v3"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL io.github.zhurkin.gost.version="%%GOST_VERSION%%"
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=fetch /out/gost /usr/local/bin/gost
+
+RUN /usr/local/bin/gost -V
+
+ENTRYPOINT ["/usr/local/bin/gost"]
