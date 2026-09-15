@@ -1,33 +1,3 @@
-FROM debian:%%DEBIAN_IMAGE%% AS fetch
-
-ARG DEBIAN_FRONTEND=noninteractive
-
-ARG GOST_VERSION="%%GOST_VERSION%%"
-ARG GOST_OS="%%GOST_OS%%"
-ARG GOST_ARCH="%%GOST_ARCH%%"
-ARG GOST_SHA256="%%GOST_SHA256%%"
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        ca-certificates \
-        curl && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN set -eux; \
-    archive="gost_${GOST_VERSION}_${GOST_OS}_${GOST_ARCH}.tar.gz"; \
-    url="https://github.com/go-gost/gost/releases/download/v${GOST_VERSION}/${archive}"; \
-    curl -fL --retry 3 \
-        -o "/tmp/${archive}" \
-        "${url}"; \
-    echo "${GOST_SHA256}  /tmp/${archive}" | sha256sum -c -; \
-    mkdir -p /tmp/gost-extract /out; \
-    tar -xzf "/tmp/${archive}" -C /tmp/gost-extract; \
-    gost_bin="$(find /tmp/gost-extract -type f -name gost -print -quit)"; \
-    test -n "${gost_bin}"; \
-    install -m 0755 "${gost_bin}" /out/gost; \
-    /out/gost -V
-
-
 FROM debian:%%DEBIAN_IMAGE%%
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -43,8 +13,24 @@ RUN apt-get update && \
         ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=fetch /out/gost /usr/local/bin/gost
+RUN groupadd --gid 10001 gost && \
+    useradd \
+        --uid 10001 \
+        --gid 10001 \
+        --home-dir /var/lib/gost \
+        --shell /usr/sbin/nologin \
+        --no-create-home \
+        gost && \
+    install -d -o gost -g gost -m 0750 /var/lib/gost && \
+    install -d -o root -g gost -m 0750 /etc/gost
 
-RUN /usr/local/bin/gost -V
+COPY --from=fetch --chown=root:root /out/gost /usr/local/bin/gost
+
+RUN chmod 0755 /usr/local/bin/gost && \
+    /usr/local/bin/gost -V
+
+ENV HOME=/var/lib/gost
+
+USER gost:gost
 
 ENTRYPOINT ["/usr/local/bin/gost"]
