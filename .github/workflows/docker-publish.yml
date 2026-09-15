@@ -49,6 +49,7 @@ jobs:
             latest=false
           tags: |
             type=semver,pattern={{version}}
+            type=raw,value=test,enable=${{ github.event_name == 'workflow_dispatch' }}
 
       - name: Build
         uses: docker/build-push-action@v6
@@ -67,10 +68,10 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           echo "=== GOST version ==="
-          docker run --rm ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }} -V
+          docker run --rm ${{ env.IMAGE_NAME }}:test -V
 
           echo
           echo "=== Image size ==="
           docker image inspect \
-            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }} \
+            ${{ env.IMAGE_NAME }}:test \
             --format '{{.Size}} bytes'
