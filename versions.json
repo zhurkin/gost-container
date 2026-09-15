@@ -1,0 +1,12 @@
+{
+  "debian": {
+    "image": "13.6-slim",
+    "suite": "trixie"
+  },
+  "gost": {
+    "version": "3.2.6",
+    "os": "linux",
+    "arch": "amd64",
+    "sha256": "b39037b0380ea001fb3c0c28441c2e10bfc694f90682739a65b53e55dce5238b"
+  }
+}
