@@ -1,0 +1,76 @@
+name: Docker build and publish
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: ${{ vars.DOCKERHUB_USERNAME }}/gost
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate Dockerfile
+        run: |
+          chmod +x apply-templates.sh
+          jq --version
+          ./apply-templates.sh
+
+          echo
+          echo "=== Generated Dockerfile ==="
+          cat Dockerfile
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            type=semver,pattern={{version}}
+
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+          load: ${{ github.event_name == 'workflow_dispatch' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "=== GOST version ==="
+          docker run --rm ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }} -V
+
+          echo
+          echo "=== Image size ==="
+          docker image inspect \
+            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }} \
+            --format '{{.Size}} bytes'
