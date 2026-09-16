@@ -1,0 +1,24 @@
+services:
+  - name: relay-server
+    addr: ":8443"
+
+    handler:
+      type: relay
+      auther: relay-users
+
+    listener:
+      type: tls
+
+      tls:
+        certFile: /run/secrets/tls-server-cert
+        keyFile: /run/secrets/tls-server-key
+
+        options:
+          minVersion: VersionTLS12
+
+authers:
+  - name: relay-users
+    reload: 10s
+
+    file:
+      path: /run/secrets/server-users
