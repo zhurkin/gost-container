@@ -1,0 +1,58 @@
+services:
+  gost-server:
+    image: zhurkinvs/gost:0.1.0
+
+    command:
+      - "-C"
+      - "/etc/gost/gost.yaml"
+
+    volumes:
+      - ./gost.server-example.yaml:/etc/gost/gost.yaml:ro
+
+    secrets:
+      - server-users
+      - tls-server-cert
+      - tls-server-key
+
+    restart: unless-stopped
+
+
+  gost-client:
+    image: zhurkinvs/gost:0.1.0
+
+    command:
+      - "-C"
+      - "/etc/gost/gost.yaml"
+
+    volumes:
+      - ./gost.client-example.yaml:/etc/gost/gost.yaml:ro
+
+    secrets:
+      - client-credentials
+      - tls-ca-cert
+
+    ports:
+      - "127.0.0.1:1080:1080"
+      - "127.0.0.1:1053:1053/udp"
+
+    depends_on:
+      - gost-server
+
+    restart: unless-stopped
+
+
+secrets:
+  server-users:
+    file: ./server-users.example
+
+  client-credentials:
+    file: ./client-credentials.example
+
+  tls-ca-cert:
+    file: ./certs/ca.cert.pem
+
+  tls-server-cert:
+    file: ./certs/server.cert.pem
+
+  tls-server-key:
+    file: ./certs/server.key.pem
