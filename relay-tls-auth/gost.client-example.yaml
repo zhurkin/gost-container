@@ -1,0 +1,51 @@
+services:
+  - name: socks-client
+    addr: ":1080"
+
+    handler:
+      type: socks5
+      chain: relay-chain
+
+    listener:
+      type: tcp
+
+
+  - name: dns-udp-test
+    addr: ":1053"
+
+    handler:
+      type: udp
+      chain: relay-chain
+
+    listener:
+      type: udp
+
+    forwarder:
+      nodes:
+        - name: cloudflare-dns
+          addr: 1.1.1.1:53
+
+
+chains:
+  - name: relay-chain
+
+    hops:
+      - name: relay-hop
+
+        nodes:
+          - name: relay-server
+            addr: gost-server:8443
+
+            connector:
+              type: relay
+
+              auth:
+                file: /run/secrets/client-credentials
+
+            dialer:
+              type: tls
+
+              tls:
+                secure: true
+                serverName: relay.test
+                caFile: /run/secrets/tls-ca-cert
