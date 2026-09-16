@@ -1,0 +1,17 @@
+services:
+  - name: relay-server
+    addr: ":8420"
+
+    handler:
+      type: relay
+      auther: relay-users
+
+    listener:
+      type: tcp
+
+authers:
+  - name: relay-users
+    reload: 10s
+
+    file:
+      path: /run/secrets/server-users
