@@ -1,0 +1,47 @@
+services:
+  gost-server:
+    image: zhurkinvs/gost:0.1.0
+    container_name: gost-server
+
+    command:
+      - "-C"
+      - "/etc/gost/gost.yaml"
+
+    volumes:
+      - ./gost.server-example.yaml:/etc/gost/gost.yaml:ro
+
+    secrets:
+      - server-users
+
+    restart: unless-stopped
+
+
+  gost-client:
+    image: zhurkinvs/gost:0.1.0
+    container_name: gost-client
+
+    command:
+      - "-C"
+      - "/etc/gost/gost.yaml"
+
+    volumes:
+      - ./gost.client-example.yaml:/etc/gost/gost.yaml:ro
+
+    secrets:
+      - client-credentials
+
+    ports:
+      - "127.0.0.1:1080:1080"
+
+    depends_on:
+      - gost-server
+
+    restart: unless-stopped
+
+
+secrets:
+  server-users:
+    file: ./server-users.example
+
+  client-credentials:
+    file: ./client-credentials.example
