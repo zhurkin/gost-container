@@ -1,0 +1,11 @@
+# Users allowed to connect to this GOST Relay server.
+#
+# Format:
+# username password
+
+demo- change-me-now
+
+# Additional users can be added:
+#
+# user1 another-password
+# user2 another-password
