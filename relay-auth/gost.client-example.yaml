@@ -1,0 +1,29 @@
+services:
+  - name: socks-client
+    addr: ":1080"
+
+    handler:
+      type: socks5
+      chain: relay-chain
+
+    listener:
+      type: tcp
+
+chains:
+  - name: relay-chain
+
+    hops:
+      - name: relay-hop
+
+        nodes:
+          - name: relay-server
+            addr: gost-server:8420
+
+            connector:
+              type: relay
+
+              auth:
+                file: /run/secrets/client-credentials
+
+            dialer:
+              type: tcp
